@@ -1,0 +1,90 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  color: #172033;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 50px 20px;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #667085;
+  margin-bottom: 35px;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 16px;
+  font-size: 17px;
+  border: 1px solid #ccd3df;
+  border-radius: 10px;
+  outline: none;
+}
+
+.search-box button {
+  padding: 16px 25px;
+  border: none;
+  border-radius: 10px;
+  background: #172033;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.search-box button:hover {
+  opacity: 0.85;
+}
+
+.result-card {
+  background: white;
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.result-card h2 {
+  margin-top: 0;
+}
+
+.result-card p {
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.score {
+  font-size: 14px;
+  color: #667085;
+  margin-bottom: 12px;
+}
+
+.result-card a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: bold;
+}
