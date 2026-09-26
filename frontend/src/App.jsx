@@ -36,86 +36,191 @@ function App() {
       setResults(data.results || []);
     } catch (error) {
       console.error(error);
-      setAnswer("Could not connect to the backend.");
+      setAnswer(
+        "Could not connect to the backend. Please make sure the server is running."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      searchWiki();
+    }
+  };
+
   return (
     <div className="app">
-      <div className="container">
+      <div className="background-glow glow-one"></div>
+      <div className="background-glow glow-two"></div>
 
-        <h1>📚 Wiki Smart Assistant</h1>
+      <main className="container">
 
-        <p className="subtitle">
-          Ask questions and search Wikipedia using AI-powered semantic search
-        </p>
+        {/* Header */}
+        <header className="hero">
+          <div className="logo">📚</div>
 
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Ask something about Wikipedia..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                searchWiki();
-              }
-            }}
-          />
+          <h1>Wiki Smart Assistant</h1>
 
-          <button onClick={searchWiki} disabled={loading}>
-            {loading ? "Searching..." : "Search"}
-          </button>
-        </div>
+          <p>
+            Ask questions and discover Wikipedia knowledge using
+            AI-powered semantic search.
+          </p>
+        </header>
 
-        {answer && (
-          <div className="answer-card">
-            <h2>🤖 Answer</h2>
-            <p>{answer}</p>
+        {/* Search */}
+        <section className="search-section">
+          <div className="search-box">
+
+            <input
+              type="text"
+              placeholder="Ask something about Wikipedia..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+            />
+
+            <button
+              onClick={searchWiki}
+              disabled={loading || !query.trim()}
+            >
+              {loading ? "Searching..." : "Search"}
+            </button>
+
+          </div>
+
+          <p className="search-hint">
+            Press Enter to search
+          </p>
+        </section>
+
+        {/* Loading */}
+        {loading && (
+          <div className="loading-card">
+            <div className="spinner"></div>
+
+            <h3>Searching Wikipedia...</h3>
+
+            <p>
+              Finding the most relevant articles for your question.
+            </p>
           </div>
         )}
 
-        <div className="results">
+        {/* Answer */}
+        {!loading && answer && (
+          <section className="answer-card">
 
-          {results.length > 0 && (
-            <h2 className="results-title">
-              📖 Related Articles
-            </h2>
-          )}
+            <div className="section-heading">
+              <span className="heading-icon">🤖</span>
 
-          {results.map((article, index) => (
-            <div className="result-card" key={index}>
-
-              <h2>{article.name}</h2>
-
-              <p>
-                {article.description ||
-                  article.abstract ||
-                  "No description available."}
-              </p>
-
-              <div className="score">
-                Similarity: {article.score.toFixed(3)}
+              <div>
+                <h2>Answer</h2>
+                <span>Based on relevant Wikipedia articles</span>
               </div>
+            </div>
 
-              {article.url && (
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noreferrer"
+            <p className="answer-text">
+              {answer}
+            </p>
+
+          </section>
+        )}
+
+        {/* Related Articles */}
+        {!loading && results.length > 0 && (
+          <section className="results-section">
+
+            <div className="section-heading">
+              <span className="heading-icon">📖</span>
+
+              <div>
+                <h2>Related Articles</h2>
+                <span>
+                  Wikipedia articles related to your question
+                </span>
+              </div>
+            </div>
+
+            <div className="results">
+
+              {results.map((article, index) => (
+                <article
+                  className="result-card"
+                  key={`${article.name}-${index}`}
                 >
-                  Read Wikipedia →
-                </a>
-              )}
+
+                  <div className="result-number">
+                    {index + 1}
+                  </div>
+
+                  <div className="result-content">
+
+                    <h3>
+                      {article.name || "Wikipedia Article"}
+                    </h3>
+
+                    <p>
+                      {article.description ||
+                        article.abstract ||
+                        "No description available."}
+                    </p>
+
+                    <div className="result-footer">
+
+                      <span className="score">
+                        Similarity:{" "}
+                        {typeof article.score === "number"
+                          ? article.score.toFixed(3)
+                          : "N/A"}
+                      </span>
+
+                      {article.url && (
+                        <a
+                          href={article.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Read on Wikipedia →
+                        </a>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </article>
+              ))}
 
             </div>
-          ))}
 
-        </div>
+          </section>
+        )}
 
-      </div>
+        {/* Empty state */}
+        {!loading && !answer && results.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-icon">🔎</div>
+
+            <h2>Start exploring</h2>
+
+            <p>
+              Ask a question above and discover relevant
+              Wikipedia knowledge.
+            </p>
+          </div>
+        )}
+
+        {/* Footer */}
+        <footer>
+          <p>
+            Wiki Smart Assistant • Semantic Search • FAISS • FastAPI • React
+          </p>
+        </footer>
+
+      </main>
     </div>
   );
 }
