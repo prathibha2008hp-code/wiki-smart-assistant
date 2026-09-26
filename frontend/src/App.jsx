@@ -36,9 +36,7 @@ function App() {
       setResults(data.results || []);
     } catch (error) {
       console.error(error);
-      setAnswer(
-        "Could not connect to the backend. Please make sure the server is running."
-      );
+      setAnswer("Could not connect to the backend.");
     } finally {
       setLoading(false);
     }
@@ -57,22 +55,17 @@ function App() {
 
       <main className="container">
 
-        {/* Header */}
         <header className="hero">
           <div className="logo">📚</div>
-
           <h1>Wiki Smart Assistant</h1>
-
           <p>
             Ask questions and discover Wikipedia knowledge using
             AI-powered semantic search.
           </p>
         </header>
 
-        {/* Search */}
         <section className="search-section">
           <div className="search-box">
-
             <input
               type="text"
               placeholder="Ask something about Wikipedia..."
@@ -88,48 +81,35 @@ function App() {
             >
               {loading ? "Searching..." : "Search"}
             </button>
-
           </div>
 
-          <p className="search-hint">
-            Press Enter to search
-          </p>
+          <p className="search-hint">Press Enter to search</p>
         </section>
 
-        {/* Loading */}
         {loading && (
           <div className="loading-card">
             <div className="spinner"></div>
-
             <h3>Searching Wikipedia...</h3>
-
-            <p>
-              Finding the most relevant articles for your question.
-            </p>
+            <p>Finding relevant articles...</p>
           </div>
         )}
 
-        {/* Answer */}
         {!loading && answer && (
           <section className="answer-card">
 
             <div className="section-heading">
               <span className="heading-icon">🤖</span>
-
               <div>
-                <h2>Answer</h2>
-                <span>Based on relevant Wikipedia articles</span>
+                <h2>AI Answer</h2>
+                <span>Generated from Wikipedia content</span>
               </div>
             </div>
 
-            <p className="answer-text">
-              {answer}
-            </p>
+            <p className="answer-text">{answer}</p>
 
           </section>
         )}
 
-        {/* Related Articles */}
         {!loading && results.length > 0 && (
           <section className="results-section">
 
@@ -138,9 +118,7 @@ function App() {
 
               <div>
                 <h2>Related Articles</h2>
-                <span>
-                  Wikipedia articles related to your question
-                </span>
+                <span>Wikipedia articles related to your question</span>
               </div>
             </div>
 
@@ -174,7 +152,7 @@ function App() {
                         Similarity:{" "}
                         {typeof article.score === "number"
                           ? article.score.toFixed(3)
-                          : "N/A"}
+                          : "Wikipedia"}
                       </span>
 
                       {article.url && (
@@ -199,24 +177,20 @@ function App() {
           </section>
         )}
 
-        {/* Empty state */}
         {!loading && !answer && results.length === 0 && (
           <div className="empty-state">
             <div className="empty-icon">🔎</div>
-
             <h2>Start exploring</h2>
-
             <p>
-              Ask a question above and discover relevant
-              Wikipedia knowledge.
+              Ask a question above and discover relevant Wikipedia
+              knowledge.
             </p>
           </div>
         )}
 
-        {/* Footer */}
         <footer>
           <p>
-            Wiki Smart Assistant • Semantic Search • FAISS • FastAPI • React
+            Wiki Smart Assistant • RAG • FAISS • FastAPI • React • Groq
           </p>
         </footer>
 
