@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 app = FastAPI(title="Wiki Smart Assistant")
 
 
-# Allow React frontend to access the API
+# CORS - allow React frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -67,10 +67,11 @@ def search(request: SearchRequest):
     if not query:
         return {
             "query": query,
+            "answer": "Please enter a question.",
             "results": []
         }
 
-    # Convert user's query into embedding
+    # Convert query into embedding
     query_embedding = model.encode(
         [query],
         convert_to_numpy=True
@@ -102,7 +103,25 @@ def search(request: SearchRequest):
             "url": article.get("url")
         })
 
+    # Build answer from retrieved Wikipedia content
+    answer_parts = []
+
+    for article in results[:3]:
+
+        text = article.get("abstract") or article.get("description")
+
+        if text:
+            answer_parts.append(
+                f"{article.get('name')}: {text}"
+            )
+
+    answer = "\n\n".join(answer_parts)
+
+    if not answer:
+        answer = "I couldn't find enough information for this question."
+
     return {
         "query": query,
+        "answer": answer,
         "results": results
     }
