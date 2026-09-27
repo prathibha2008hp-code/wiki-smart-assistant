@@ -40,25 +40,17 @@ GROQ_MODEL = "openai/gpt-oss-20b"
 
 print("Loading embedding model...")
 
-embedding_model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 print("Loading FAISS index...")
 
-index = faiss.read_index(
-    "index/articles.index"
-)
+index = faiss.read_index("index/articles.index")
 
 
 print("Loading article metadata...")
 
-with open(
-    "index/articles.json",
-    "r",
-    encoding="utf-8"
-) as f:
+with open("index/articles.json", "r", encoding="utf-8") as f:
     articles = json.load(f)
 
 
@@ -82,17 +74,11 @@ def search_local_wikipedia(query, top_k=5):
 
     faiss.normalize_L2(query_embedding)
 
-    scores, indices = index.search(
-        query_embedding,
-        top_k
-    )
+    scores, indices = index.search(query_embedding, top_k)
 
     results = []
 
-    for score, idx in zip(
-        scores[0],
-        indices[0]
-    ):
+    for score, idx in zip(scores[0], indices[0]):
 
         if idx == -1:
             continue
@@ -120,7 +106,6 @@ def search_wikipedia_api(query):
     print("Searching Wikipedia API...")
 
     try:
-
         response = requests.get(
             "https://en.wikipedia.org/w/api.php",
             params={
@@ -140,13 +125,7 @@ def search_wikipedia_api(query):
 
         data = response.json()
 
-        search_results = data.get(
-            "query",
-            {}
-        ).get(
-            "search",
-            []
-        )
+        search_results = data.get("query", {}).get("search", [])
 
         results = []
 
@@ -167,18 +146,13 @@ def search_wikipedia_api(query):
             )
 
             if summary_response.ok:
-
                 summary = summary_response.json()
 
                 results.append({
                     "score": 1.0,
                     "name": title,
-                    "description": summary.get(
-                        "description"
-                    ),
-                    "abstract": summary.get(
-                        "extract"
-                    ),
+                    "description": summary.get("description"),
+                    "abstract": summary.get("extract"),
                     "url": (
                         summary.get("content_urls", {})
                         .get("desktop", {})
@@ -189,12 +163,7 @@ def search_wikipedia_api(query):
         return results
 
     except Exception as error:
-
-        print(
-            "Wikipedia API error:",
-            error
-        )
-
+        print("Wikipedia API error:", error)
         return []
 
 
@@ -204,9 +173,7 @@ def create_context(results):
 
     for article in results:
 
-        name = article.get(
-            "name"
-        ) or "Unknown article"
+        name = article.get("name") or "Unknown article"
 
         text = (
             article.get("abstract")
@@ -215,47 +182,39 @@ def create_context(results):
         )
 
         if text:
-
             context_parts.append(
                 f"Article: {name}\n"
                 f"Content: {text}"
             )
 
-    return "\n\n".join(
-        context_parts
-    )
+    return "\n\n".join(context_parts)
 
 
 def generate_answer(query, context):
 
     if not context:
-
         return (
             "I couldn't find enough relevant "
             "Wikipedia information to answer this question."
         )
 
     try:
-
         response = groq_client.chat.completions.create(
-
             model=GROQ_MODEL,
-
             messages=[
-
                 {
                     "role": "system",
                     "content": (
-                        "You are Wiki Smart Assistant. "
-                        "Answer the user's question using "
-                        "ONLY the provided Wikipedia context. "
-                        "Do not invent facts. "
-                        "Give a clear and concise answer. "
-                        "If the context does not contain enough "
-                        "information, say so."
+                        "You are Wiki Smart Assistant, an AI research assistant. "
+                        "Answer the user's question using ONLY the provided "
+                        "Wikipedia context. Do not invent facts not present "
+                        "in the context. Write a well-developed answer of at "
+                        "least 3-5 sentences, covering the key facts available "
+                        "in the context (dates, achievements, significance, etc). "
+                        "If the context does not contain enough information, "
+                        "say so explicitly rather than giving a one-line answer."
                     )
                 },
-
                 {
                     "role": "user",
                     "content": (
@@ -263,28 +222,15 @@ def generate_answer(query, context):
                         f"Wikipedia context:\n{context}"
                     )
                 }
-
             ],
-
-            temperature=0.2,
-
-            max_tokens=500
+            temperature=0.3,
+            max_tokens=700
         )
 
-        return (
-            response.choices[0]
-            .message
-            .content
-            .strip()
-        )
+        return response.choices[0].message.content.strip()
 
     except Exception as error:
-
-        print(
-            "Groq error:",
-            error
-        )
-
+        print("Groq error:", error)
         return (
             "The Wikipedia search worked, "
             "but the AI answer could not be generated."
@@ -293,7 +239,6 @@ def generate_answer(query, context):
 
 @app.get("/")
 def home():
-
     return {
         "message": "Wiki Smart Assistant API is running!"
     }
@@ -305,23 +250,17 @@ def search(request: SearchRequest):
     query = request.query.strip()
 
     if not query:
-
         return {
             "query": query,
             "answer": "Please enter a question.",
             "results": []
         }
 
-
     # -------------------------------------------------
     # STEP 1: Search local FAISS dataset
     # -------------------------------------------------
 
-    results = search_local_wikipedia(
-        query,
-        request.top_k
-    )
-
+    results = search_local_wikipedia(query, request.top_k)
 
     # -------------------------------------------------
     # STEP 2: Check whether local results are relevant
@@ -330,65 +269,43 @@ def search(request: SearchRequest):
     use_wikipedia_api = False
 
     if not results:
-
         use_wikipedia_api = True
-
     else:
-
         best_score = results[0]["score"]
 
         # Low similarity means the local dataset
         # probably does not contain the requested topic.
-
         if best_score < 0.60:
-
             use_wikipedia_api = True
-
 
     # -------------------------------------------------
     # STEP 3: Wikipedia API fallback
     # -------------------------------------------------
 
     if use_wikipedia_api:
-
-        api_results = search_wikipedia_api(
-            query
-        )
+        api_results = search_wikipedia_api(query)
 
         if api_results:
-
             results = api_results
-
 
     # -------------------------------------------------
     # STEP 4: Create context for Groq
     # -------------------------------------------------
 
-    context = create_context(
-        results
-    )
-
+    context = create_context(results)
 
     # -------------------------------------------------
     # STEP 5: Generate AI answer
     # -------------------------------------------------
 
-    answer = generate_answer(
-        query,
-        context
-    )
-
+    answer = generate_answer(query, context)
 
     # -------------------------------------------------
     # STEP 6: Return response
     # -------------------------------------------------
 
     return {
-
         "query": query,
-
         "answer": answer,
-
         "results": results
-
     }
