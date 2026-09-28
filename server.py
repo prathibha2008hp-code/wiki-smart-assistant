@@ -22,7 +22,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://wiki-smart-assistant-7xn26njdy-leaders15.vercel.app",
+        "https://wiki-smart-assistant.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
