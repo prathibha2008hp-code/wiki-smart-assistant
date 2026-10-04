@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Literal
 
 import faiss
 import requests
@@ -85,6 +86,8 @@ print("Wiki Smart Assistant backend ready!")
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 5
+    history: list[dict] = []
+    language: Literal["en", "kn", "hi"] = "en"
 
 
 # -----------------------------
@@ -245,17 +248,23 @@ def create_context(results):
 # Generate AI Answer
 # -----------------------------
 
-def generate_answer(query, context):
+def generate_answer(query, context, language="en"):
+
+    answer_language = {
+        "en": "English",
+        "kn": "Kannada",
+        "hi": "Hindi",
+    }.get(language, "English")
 
     if not context:
-
-        return (
-            "I couldn't find enough relevant "
-            "Wikipedia information to answer this question."
-        )
+        no_context_answers = {
+            "en": "I couldn't find enough relevant Wikipedia information to answer this question.",
+            "kn": "ಈ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಲು ಸಾಕಷ್ಟು ಸಂಬಂಧಿತ Wikipedia ಮಾಹಿತಿ ಕಂಡುಬಂದಿಲ್ಲ.",
+            "hi": "इस प्रश्न का उत्तर देने के लिए पर्याप्त संबंधित Wikipedia जानकारी नहीं मिली।",
+        }
+        return no_context_answers.get(language, no_context_answers["en"])
 
     try:
-
         response = groq_client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
@@ -271,6 +280,7 @@ def generate_answer(query, context):
                         "Write a well-developed answer of at least "
                         "3-5 sentences, covering the key facts "
                         "available in the context. "
+                        f"Write the answer in {answer_language}. "
                         "If the context does not contain enough "
                         "information, say so explicitly."
                     ),
@@ -293,10 +303,12 @@ def generate_answer(query, context):
 
         print("Groq error:", error)
 
-        return (
-            "The Wikipedia search worked, "
-            "but the AI answer could not be generated."
-        )
+        generation_errors = {
+            "en": "The Wikipedia search worked, but the AI answer could not be generated.",
+            "kn": "Wikipedia ಹುಡುಕಾಟ ಯಶಸ್ವಿಯಾಗಿದೆ, ಆದರೆ AI ಉತ್ತರವನ್ನು ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
+            "hi": "Wikipedia खोज सफल रही, लेकिन AI उत्तर तैयार नहीं हो सका।",
+        }
+        return generation_errors.get(language, generation_errors["en"])
 
 
 # -----------------------------
@@ -359,7 +371,8 @@ def search(request: SearchRequest):
 
     answer = generate_answer(
         query,
-        context
+        context,
+        request.language,
     )
 
     return {
