@@ -86,6 +86,11 @@ async function fetchWikipediaPreview(title) {
 function App() {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
+  const [insights, setInsights] = useState({
+    quickSummary: "",
+    keyPoints: [],
+    takeaway: "",
+  });
   const [results, setResults] = useState([]);
   const [featuredArticle, setFeaturedArticle] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -213,6 +218,7 @@ function App() {
   const clearConversation = () => {
     setMessages([]);
     setAnswer("");
+    setInsights({ quickSummary: "", keyPoints: [], takeaway: "" });
     setResults([]);
     setFeaturedArticle(null);
     setSuggestions([]);
@@ -234,6 +240,7 @@ function App() {
 
     setLoading(true);
     setAnswer("");
+    setInsights({ quickSummary: "", keyPoints: [], takeaway: "" });
     setResults([]);
     setFeaturedArticle(null);
     setSuggestions([]);
@@ -259,8 +266,20 @@ function App() {
       const data = await response.json();
       const finalAnswer = data.answer || text.noAnswer;
       const nextResults = data.results || [];
+      const keyPoints = Array.isArray(data.key_points)
+        ? data.key_points
+            .filter((point) => typeof point === "string" && point.trim())
+            .slice(0, 5)
+        : [];
+      const nextInsights = {
+        quickSummary:
+          typeof data.quick_summary === "string" ? data.quick_summary.trim() : "",
+        keyPoints: keyPoints.length >= 3 ? keyPoints : [],
+        takeaway: typeof data.takeaway === "string" ? data.takeaway.trim() : "",
+      };
 
       setAnswer(finalAnswer);
+      setInsights(nextInsights);
       setResults(nextResults);
       setSuggestions(buildSuggestions(trimmed, nextResults, text));
       updateHistory(trimmed);
@@ -577,6 +596,14 @@ function App() {
                   <span>{text.wikipediaContext}</span>
                 </div>
               </div>
+              <div className="insights-skeleton" aria-hidden="true">
+                <span className="skeleton-line skeleton-heading"></span>
+                <span className="skeleton-line"></span>
+                <span className="skeleton-line skeleton-short"></span>
+                <span className="skeleton-line skeleton-heading"></span>
+                <span className="skeleton-line"></span>
+                <span className="skeleton-line skeleton-short"></span>
+              </div>
             </section>
           )}
 
@@ -666,6 +693,32 @@ function App() {
 
               <div className="answer-divider"></div>
               <p className="answer-text">{answer}</p>
+              {(insights.quickSummary || insights.keyPoints.length > 0 || insights.takeaway) && (
+                <div className="quick-insights">
+                  {insights.quickSummary && (
+                    <section className="quick-insight">
+                      <h3>{text.quickSummary}</h3>
+                      <p>{insights.quickSummary}</p>
+                    </section>
+                  )}
+                  {insights.keyPoints.length > 0 && (
+                    <section className="quick-insight">
+                      <h3>{text.keyPoints}</h3>
+                      <ul>
+                        {insights.keyPoints.map((point, index) => (
+                          <li key={`${index}-${point}`}>{point}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {insights.takeaway && (
+                    <section className="quick-insight takeaway">
+                      <h3>{text.takeaway}</h3>
+                      <p>{insights.takeaway}</p>
+                    </section>
+                  )}
+                </div>
+              )}
               {shareNotice && (
                 <div className="share-toast" role="status" aria-live="polite">
                   {shareNotice}

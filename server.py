@@ -256,13 +256,22 @@ def generate_answer(query, context, language="en"):
         "hi": "Hindi",
     }.get(language, "English")
 
+    empty_insights = {
+        "quick_summary": None,
+        "key_points": [],
+        "takeaway": None,
+    }
+
     if not context:
         no_context_answers = {
             "en": "I couldn't find enough relevant Wikipedia information to answer this question.",
             "kn": "ಈ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಲು ಸಾಕಷ್ಟು ಸಂಬಂಧಿತ Wikipedia ಮಾಹಿತಿ ಕಂಡುಬಂದಿಲ್ಲ.",
             "hi": "इस प्रश्न का उत्तर देने के लिए पर्याप्त संबंधित Wikipedia जानकारी नहीं मिली।",
         }
-        return no_context_answers.get(language, no_context_answers["en"])
+        return {
+            "answer": no_context_answers.get(language, no_context_answers["en"]),
+            **empty_insights,
+        }
 
     try:
         response = groq_client.chat.completions.create(
@@ -277,12 +286,17 @@ def generate_answer(query, context, language="en"):
                         "the provided Wikipedia context. "
                         "Do not invent facts that are not present "
                         "in the context. "
-                        "Write a well-developed answer of at least "
-                        "3-5 sentences, covering the key facts "
-                        "available in the context. "
-                        f"Write the answer in {answer_language}. "
-                        "If the context does not contain enough "
-                        "information, say so explicitly."
+                        f"Write all values in {answer_language}. "
+                        "Return one valid JSON object with exactly these "
+                        "fields: answer (a well-developed answer of 3-5 "
+                        "sentences), quick_summary (2-3 concise sentences), "
+                        "key_points (an array of 3-5 important factual "
+                        "strings), and takeaway (one very short sentence). "
+                        "Ground every field only in the provided Wikipedia "
+                        "context. If the context lacks a fact, do not add it; "
+                        "if the context is insufficient, say so explicitly "
+                        "in the answer and provide only supported summary "
+                        "fields."
                     ),
                 },
                 {
@@ -294,10 +308,51 @@ def generate_answer(query, context, language="en"):
                 },
             ],
             temperature=0.3,
-            max_tokens=700,
+            max_tokens=1100,
         )
 
-        return response.choices[0].message.content.strip()
+        raw_content = (response.choices[0].message.content or "").strip()
+        json_content = raw_content
+        if json_content.startswith("```") and json_content.endswith("```"):
+            json_content = json_content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+        try:
+            payload = json.loads(json_content)
+        except json.JSONDecodeError:
+            payload = None
+
+        if not isinstance(payload, dict):
+            return {
+                "answer": raw_content,
+                **empty_insights,
+            }
+
+        answer = payload.get("answer")
+        key_points = payload.get("key_points")
+        if not isinstance(key_points, list):
+            key_points = []
+        key_points = [
+            point.strip()
+            for point in key_points
+            if isinstance(point, str) and point.strip()
+        ][:5]
+
+        return {
+            "answer": answer.strip() if isinstance(answer, str) and answer.strip() else raw_content,
+            "quick_summary": (
+                payload["quick_summary"].strip()
+                if isinstance(payload.get("quick_summary"), str)
+                and payload["quick_summary"].strip()
+                else None
+            ),
+            "key_points": key_points if len(key_points) >= 3 else [],
+            "takeaway": (
+                payload["takeaway"].strip()
+                if isinstance(payload.get("takeaway"), str)
+                and payload["takeaway"].strip()
+                else None
+            ),
+        }
 
     except Exception as error:
 
@@ -308,7 +363,10 @@ def generate_answer(query, context, language="en"):
             "kn": "Wikipedia ಹುಡುಕಾಟ ಯಶಸ್ವಿಯಾಗಿದೆ, ಆದರೆ AI ಉತ್ತರವನ್ನು ರಚಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
             "hi": "Wikipedia खोज सफल रही, लेकिन AI उत्तर तैयार नहीं हो सका।",
         }
-        return generation_errors.get(language, generation_errors["en"])
+        return {
+            "answer": generation_errors.get(language, generation_errors["en"]),
+            **empty_insights,
+        }
 
 
 # -----------------------------
@@ -337,6 +395,9 @@ def search(request: SearchRequest):
         return {
             "query": query,
             "answer": "Please enter a question.",
+            "quick_summary": None,
+            "key_points": [],
+            "takeaway": None,
             "results": [],
         }
 
@@ -369,7 +430,7 @@ def search(request: SearchRequest):
 
     context = create_context(results)
 
-    answer = generate_answer(
+    generated_content = generate_answer(
         query,
         context,
         request.language,
@@ -377,6 +438,6 @@ def search(request: SearchRequest):
 
     return {
         "query": query,
-        "answer": answer,
+        **generated_content,
         "results": results,
     }
